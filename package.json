@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "egg": "^3.17.5",
+    "egg-myplugin": "^1.0.1",
     "egg-scripts": "2",
     "egg-view-nunjucks": "^2.3.0",
     "moment": "^2.30.1"

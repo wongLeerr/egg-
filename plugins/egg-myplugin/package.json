@@ -1,0 +1,33 @@
+{
+  "name": "egg-myplugin",
+  "version": "1.0.1",
+  "description": "A custom Egg.js plugin",
+  "main": "app.js",
+  "files": [
+    "app.js",
+    "app/",
+    "config/",
+    "lib/"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "egg",
+    "eggjs",
+    "egg-plugin",
+    "myplugin"
+  ],
+  "author": "wanglele <wongleer@163.com>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "eggPlugin": {
+    "name": "myplugin",
+    "dependencies": []
+  },
+  "peerDependencies": {
+    "egg": ">=3.0.0"
+  }
+}

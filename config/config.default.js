@@ -13,8 +13,8 @@ module.exports = (appInfo) => {
   // use for cookie sign key, should change to your own and keep security
   config.keys = "egg_1751268167539_2665";
 
-  // add your middleware config here
-  config.middleware = [];
+  // 添加中间件
+  config.middleware = ["robot"];
 
   // add your user config here
   const userConfig = {
