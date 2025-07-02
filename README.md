@@ -40,7 +40,7 @@ helper 是啥？ 可以理解为工具函数，在 egg 上下文 ctx 中可通�
 
 ### 关于 app/extend
 
-该目录下可以写这么几个文件：application.js context.js request.js response.js helper.js 这些文件的作用都是为了扩展 Koa 中对应的原型，例如扩展 app 原型、ctx 原型、req 原型、res 原型、helper 原型
+该目录下可以写这么几个文件：application.js context.js request.js response.js helper.js 这些文件的作用都是为了扩展 Koa 中对应的原型，例如扩展 app 原型、ctx 原型、req 原型、res 原型、helper 原型等
 
 ### plugins 插件
 
@@ -71,3 +71,158 @@ config/plugin.js
 ```
 
 修改插件在项目中的用法，应把 path 改成 package 用法。
+
+### 框架内置基础对象
+
+egg 包含很多内置对象：application、context、request、response、controller、servive、logger、helper、config，其中前四个是继承于 Koa 的，后面的是 egg 自行扩展的。
+
+### app
+
+egg 实例，几乎可以在任何场景获取到 app 实例，在其上可以挂载一些方法和属性。
+
+### context
+
+context 实际上是一个请求级别的对象，每当收到一次请求时，都会重新包装成一个 context 对象，里面包含有请求信息以及可以设置响应信息，所有的 service 也会被挂载到 context 上，还有另外的一些属性和方法。
+
+也可以手动创建 ctx 对象：`const ctx = app.createAnonymousContext();`
+
+### helper
+
+helper 中方法也可以拿到当前请求的上下文信息。
+
+### config
+
+遵循配置和代码分离的原则，项目启动后会把合并后的最终配置输出到 `run/application_config.json（worker 进程）`和 `run/agent_config.json（agent 进程）`中，以供问题分析。
+
+### middleware
+
+编写中间件：本质上是一个函数，有 next 和 ctx 参数可对请求或者响应或者上下文对象做处理。
+使用中间件：中间件必须手动挂载并且指定中间件的先后执行顺序。
+
+- 在应用中使用中间件：
+
+  - 在 config.default.js 中声明
+
+    ```js
+    module.exports = {
+      // 配置需要的中间件，数组顺序即为中间件的加载顺序
+      middleware: ["gzip"],
+
+      // 配置 gzip 中间件的配置
+      gzip: {
+        threshold: 1024, // 小于 1k 的响应体不压缩
+      },
+    };
+    ```
+
+  ```
+
+  ```
+
+- 在框架和插件中使用中间件，这时候不支持在 config.default.js 中进行配置，要在 app.js 中进行配置
+
+  ```js
+  // app.js
+  module.exports = (app) => {
+    // 在中间件最前面统计请求时间
+    app.config.coreMiddleware.unshift("report");
+  };
+  ```
+
+- 在路由中使用中间件，无论是应用中间件还是插件或者框架中间件，本质上都是全局中间件，路由中间件支持对于特定的请求应用中间件：
+  ```js
+  // app/router.js
+  module.exports = (app) => {
+    const gzip = app.middleware.gzip({ threshold: 1024 });
+    app.router.get("/needgzip", gzip, app.controller.handler);
+  };
+  ```
+
+#### 配置 middleware
+
+- enable：控制中间件是否开启。
+- match：设置只有符合某些规则的请求才会经过这个中间件。
+- ignore：设置符合某些规则的请求不经过这个中间件。
+
+```js
+module.exports = {
+  bodyParser: {
+    enable: false, // 关闭 bodyParser 这个中间件
+  },
+};
+```
+
+`match和ignore不可同时开启，两者都支持相同的配置方式：字符串、正则、函数`;
+
+- 字符串：当参数为字符串类型时，配置的是一个 url 的路径前缀，所有以配置的字符串作为前缀的 url 都会匹配上。当然，你也可以直接使用字符串数组。
+- 正则：当参数为正则时，直接匹配满足正则验证的 url 的路径。
+- 函数：当参数为一个函数时，会将请求上下文传递给这个函数，最终取函数返回的结果（true/false）来判断是否匹配。
+
+### router
+
+基本用法：
+
+```js
+// app/router.js
+module.exports = (app) => {
+  const { router, controller } = app;
+  router.get("/user/:id", controller.user.info);
+  router.post("/user", controller.user.create);
+  router.post("/admin", isAdmin, controller.admin); // 此路由使用了isAdmin中间件
+};
+```
+
+重定向：
+
+1. 内部重定向
+   ```js
+   // app/router.js
+   module.exports = (app) => {
+     app.router.get("index", "/home/index", app.controller.home.index);
+     app.router.redirect("/", "/home/index", 302);
+   };
+   ```
+2. 外部重定向
+
+   ```js
+   // app/controller/search.js
+   exports.index = async (ctx) => {
+     const type = ctx.query.type;
+     const q = ctx.query.q || "nodejs";
+
+     if (type === "bing") {
+       ctx.redirect(`http://cn.bing.com/search?q=${q}`);
+     } else {
+       ctx.redirect(`https://www.google.co.kr/search?q=${q}`);
+     }
+   };
+   ```
+
+### 订阅模型
+
+Subscription 基类：订阅模型是一种比较常见的开发模式，egg 提供了 Subscription 基类来规范化这个模式。
+
+```javascript
+const Subscription = require("egg").Subscription;
+
+class Schedule extends Subscription {
+  // 需要实现此方法
+  // subscribe 可以为 async function 或 generator function
+  async subscribe() {}
+}
+```
+
+## 运行环境
+
+### 指定运行环境
+
+1. 通过 config/env 文件指定，该文件的文本内容就是运行环境，如：production、simulation
+2. 通过在启动 egg 应用时注入环境变量：EGG_SERVER_ENV=production npm start
+
+### 获取运行环境
+
+`app.config.env`
+
+### EGG_SERVER_ENV 与 NODE_ENV 的区别
+
+前者对于环境变量的管理更加精细，建议在 egg 应用中使用前者。

@@ -6,6 +6,7 @@ class HomeController extends Controller {
     // this 身上有ctx, app, config, service
     const { ctx, app, config, service } = this;
     console.log("🐶ctx>>", ctx.helper);
+    console.log("🐶app>>", ctx.app === app); // true
     console.log("🐶ctx isIOS>>", ctx.isIOS);
     ctx.body = "hi, egg";
   }
