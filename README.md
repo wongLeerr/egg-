@@ -13,10 +13,41 @@
 
 ### TODO:模版引擎怎么渲染的？ 为什么使用 vue 脚手架初始化不需要，为什么我们需要？
 
+### 反向代理是怎么回事？作用是？怎么跟这个项目打交道。
+
 ### 怎么控制项目环境变量的
 
 1. 第一种方法：指定 config/env
 2. 第二种方法：运行 egg app 时：注入环境变量：package.json 中：`"dev:production": "EGG_SERVER_ENV=production egg-bin dev"`
+
+### 订阅模型
+
+Subscription 基类：订阅模型是一种比较常见的开发模式，egg 提供了 Subscription 基类来规范化这个模式。
+
+```javascript
+const Subscription = require("egg").Subscription;
+
+class Schedule extends Subscription {
+  // 需要实现此方法
+  // subscribe 可以为 async function 或 generator function
+  async subscribe() {}
+}
+```
+
+## 运行环境
+
+### 指定运行环境
+
+1. 通过 config/env 文件指定，该文件的文本内容就是运行环境，如：production、simulation
+2. 通过在启动 egg 应用时注入环境变量：EGG_SERVER_ENV=production npm start
+
+### 获取运行环境
+
+`app.config.env`
+
+### EGG_SERVER_ENV 与 NODE_ENV 的区别
+
+前者对于环境变量的管理更加精细，建议在 egg 应用中使用前者。
 
 ### controller
 
@@ -198,31 +229,29 @@ module.exports = (app) => {
    };
    ```
 
-### 订阅模型
+### controller
 
-Subscription 基类：订阅模型是一种比较常见的开发模式，egg 提供了 Subscription 基类来规范化这个模式。
+作用：
 
-```javascript
-const Subscription = require("egg").Subscription;
+1. 对于处理数据的接口服务，controller 负责解析用户传来的参数，调用 service 进行数据库的增删改查操作。或者转发请求给其他服务，并返回给用户处理后的结果。
+2. 对于处理页面的 HTML 服务，controller 通过借助模版引擎等工具（如 nunjucks）动态构造渲染模版返回给前端，前端可以进行渲染页面。
 
-class Schedule extends Subscription {
-  // 需要实现此方法
-  // subscribe 可以为 async function 或 generator function
-  async subscribe() {}
-}
-```
+从 ctx 中获取参数：
 
-## 运行环境
+1. /posts?category=egg&language=node `ctx.query.xxx`
+2. /projects/:projectId/app/:appId `ctx.params.xxx`
+3. 对于 post 请求: `ctx.request.body`
+4. 获取 headers: `ctx.request.headers` 或 `ctx.headers`都可； `ctx.get(name)` 同样可以获取某个 header 字段，当然可以通过 headers['name']获取，但是前者会处理字段的大小写。
+5. 千万注意：ctx.body 指的是 ctx.response.body
+6. 设置响应单个 header：`ctx.set('show-response-time', used.toString());` 设置响应多个 header：`ctx.set(headers)`
 
-### 指定运行环境
+### service
 
-1. 通过 config/env 文件指定，该文件的文本内容就是运行环境，如：production、simulation
-2. 通过在启动 egg 应用时注入环境变量：EGG_SERVER_ENV=production npm start
+service 即为高度抽象和独立的业务逻辑封装，抽象出的 Service 可以被多个 Controller 重复使用
 
-### 获取运行环境
+### 插件
 
-`app.config.env`
+一个插件就是一个 mini 的应用，几乎和应用一模一样，只是没有 router.js 和 plugin.js 和 controller，因为本质上我们编写一个插件，一般都是为了在主应用中安装这个插件，丰富一下上下文之类的，不至于让主应用逻辑过于复杂，并且这个插件逻辑可能还可以复用在其他地方。
 
-### EGG_SERVER_ENV 与 NODE_ENV 的区别
-
-前者对于环境变量的管理更加精细，建议在 egg 应用中使用前者。
+对于插件的安装声明，一般声明在 config/pligin.js 中。  
+对于插件的配置说明一般说明在 config/config.default.js 中。
